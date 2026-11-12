@@ -19,10 +19,13 @@ fi
 
 mkdir -p "$ICONSET_DIR" "$(dirname "$OUTPUT_ICON")"
 
+RENDERED_ICON="$WORK_DIR/AppIcon-1024.png"
+swift "$ROOT/scripts/render-icon.swift" "$SOURCE_ICON" "$RENDERED_ICON"
+
 for size in 16 32 128 256 512; do
-    sips -s format png -z "$size" "$size" "$SOURCE_ICON" --out "$ICONSET_DIR/icon_${size}x${size}.png" >/dev/null
+    sips -s format png -z "$size" "$size" "$RENDERED_ICON" --out "$ICONSET_DIR/icon_${size}x${size}.png" >/dev/null
     retina_size=$((size * 2))
-    sips -s format png -z "$retina_size" "$retina_size" "$SOURCE_ICON" --out "$ICONSET_DIR/icon_${size}x${size}@2x.png" >/dev/null
+    sips -s format png -z "$retina_size" "$retina_size" "$RENDERED_ICON" --out "$ICONSET_DIR/icon_${size}x${size}@2x.png" >/dev/null
 done
 
 iconutil -c icns "$ICONSET_DIR" -o "$OUTPUT_ICON"

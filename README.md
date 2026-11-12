@@ -43,7 +43,7 @@ bash scripts/typecheck.sh
 bash scripts/make-icon.sh
 ```
 
-The script writes `Resources/AppIcon.icns`, which `scripts/build.sh` embeds into the app bundle. The build generates the asset automatically when it is missing.
+The script trims the dark padding around the artwork, makes the corners transparent, writes `Resources/AppIcon.icns`, and `scripts/build.sh` embeds that file into the app bundle. The build generates the asset automatically when it is missing.
 
 ## Install
 
