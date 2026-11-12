@@ -48,6 +48,13 @@ struct Credentials: Codable, Equatable, Sendable {
     }
 }
 
+struct TOTPProvisioning: Equatable, Sendable {
+    var secret: String
+    var digits: Int
+    var period: Int
+    var algorithm: String
+}
+
 enum VPNStatus: Equatable, Sendable {
     case unknown
     case disconnected

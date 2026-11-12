@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var password = ""
     @State private var totpSecret = ""
     @State private var isShowingSecret = false
+    @State private var isShowingScanner = false
     @State private var otpPlacement: OTPPlacement = .append
     @State private var otpSeparator = ""
     @State private var otpDigits = 6
@@ -56,6 +57,11 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("This removes the portal, username, password, and TOTP secret from the keychain.")
+        }
+        .sheet(isPresented: $isShowingScanner) {
+            QRCodeScannerView { payload in
+                try applyScannedPayload(payload)
+            }
         }
     }
 
@@ -115,6 +121,18 @@ struct SettingsView: View {
                 }
             }
 
+            HStack(spacing: 8) {
+                Button {
+                    isShowingScanner = true
+                } label: {
+                    Label("Scan QR Code", systemImage: "qrcode.viewfinder")
+                }
+
+                Text("Scan the QR code from your authenticator app.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
             Picker("OTP placement", selection: $otpPlacement) {
                 Text("Append").tag(OTPPlacement.append)
                 Text("Prepend").tag(OTPPlacement.prepend)
@@ -137,6 +155,9 @@ struct SettingsView: View {
                 Picker("Period", selection: $otpPeriod) {
                     Text("30 seconds").tag(30)
                     Text("60 seconds").tag(60)
+                    if otpPeriod != 30 && otpPeriod != 60 {
+                        Text("\(otpPeriod) seconds").tag(otpPeriod)
+                    }
                 }
 
                 Picker("Algorithm", selection: $otpAlgorithm) {
@@ -497,6 +518,46 @@ struct SettingsView: View {
         portal = credentials.portal
         username = credentials.username
         totpSecret = credentials.totpSecret
+    }
+
+    private func applyScannedPayload(_ payload: String) throws {
+        let trimmedPayload = payload.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedPayload.isEmpty else {
+            throw QRCodeScanError.emptyPayload
+        }
+
+        if trimmedPayload.lowercased().hasPrefix("otpauth-migration://") {
+            throw QRCodeScanError.unsupportedMigrationCode
+        }
+
+        if trimmedPayload.lowercased().hasPrefix("otpauth://") {
+            let provisioning = try totpGenerator.parseProvisioningURI(
+                trimmedPayload,
+                defaultDigits: otpDigits,
+                defaultPeriod: otpPeriod,
+                defaultAlgorithm: otpAlgorithm
+            )
+            do {
+                _ = try Base32.decode(provisioning.secret)
+            } catch {
+                throw QRCodeScanError.invalidPayload
+            }
+            totpSecret = provisioning.secret
+            otpDigits = provisioning.digits
+            otpPeriod = provisioning.period
+            otpAlgorithm = provisioning.algorithm
+        } else {
+            do {
+                _ = try Base32.decode(trimmedPayload)
+            } catch {
+                throw QRCodeScanError.invalidPayload
+            }
+            totpSecret = trimmedPayload
+        }
+
+        isShowingSecret = false
+        refreshVerification()
+        setFeedback("QR code scanned.", isError: false)
     }
 
     private func validateSecret() -> Bool {

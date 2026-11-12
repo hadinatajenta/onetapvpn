@@ -9,6 +9,12 @@ protocol CredentialsStoring: AnyObject {
 protocol TOTPGenerating {
     func generateCode(secret: String, digits: Int, period: Int, algorithm: String, date: Date) throws -> String
     func secondsRemaining(secret: String, digits: Int, period: Int, algorithm: String, date: Date) -> Int
+    func parseProvisioningURI(
+        _ uri: String,
+        defaultDigits: Int,
+        defaultPeriod: Int,
+        defaultAlgorithm: String
+    ) throws -> TOTPProvisioning
 }
 
 @MainActor

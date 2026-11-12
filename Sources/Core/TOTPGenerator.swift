@@ -6,6 +6,17 @@ struct TOTPGenerator: TOTPGenerating {
         case sha1
         case sha256
         case sha512
+
+        var name: String {
+            switch self {
+            case .sha1:
+                return "SHA1"
+            case .sha256:
+                return "SHA256"
+            case .sha512:
+                return "SHA512"
+            }
+        }
     }
 
     private struct Configuration {
@@ -43,6 +54,26 @@ struct TOTPGenerator: TOTPGenerating {
         let elapsedSeconds = Int(floor(remainder))
         let normalizedElapsed = ((elapsedSeconds % resolvedPeriod) + resolvedPeriod) % resolvedPeriod
         return resolvedPeriod - normalizedElapsed
+    }
+
+    func parseProvisioningURI(
+        _ uri: String,
+        defaultDigits: Int,
+        defaultPeriod: Int,
+        defaultAlgorithm: String
+    ) throws -> TOTPProvisioning {
+        let configuration = try parseURI(
+            uri,
+            defaultDigits: defaultDigits,
+            defaultPeriod: defaultPeriod,
+            defaultAlgorithm: defaultAlgorithm
+        )
+        return TOTPProvisioning(
+            secret: configuration.secret,
+            digits: configuration.digits,
+            period: configuration.period,
+            algorithm: configuration.algorithm.name
+        )
     }
 
     private func resolvedConfiguration(

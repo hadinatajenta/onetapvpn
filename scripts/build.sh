@@ -36,6 +36,7 @@ mkdir -p "$MACOS_DIR" "$CONTENTS_DIR/Resources"
 swiftc -O -swift-version 5 \
     -target "$(uname -m)-apple-macosx13.0" \
     -framework AppKit \
+    -framework AVFoundation \
     -framework SwiftUI \
     -framework Combine \
     -framework Security \

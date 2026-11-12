@@ -69,13 +69,17 @@ To build without installing, run `bash scripts/build.sh` and copy `build/OneTapV
 
 1. Click the OneTapVPN icon in the menu bar and choose Settings.
 2. Enter the portal, username, and password.
-3. Enter the TOTP secret or complete otpauth URI from your authenticator.
+3. Enter the TOTP secret, paste a complete otpauth URI, or click Scan QR Code and point the camera at the QR code from your authenticator.
 4. Verify that the live code matches the code shown by your authenticator app.
 5. Save the settings.
 6. Grant Accessibility access in System Settings > Privacy & Security > Accessibility.
 7. Click Test Connection and approve the GlobalProtect login if prompted.
 
 The app appears in the menu bar and in the Dock. Click the Dock icon to open Settings, or use the menu bar icon for one-click connect and disconnect.
+
+## Camera scanning
+
+Click Scan QR Code next to the TOTP secret field and point the camera at the QR code from your authenticator app. OneTapVPN accepts standard `otpauth://totp/...` codes and plain base32 secrets. The camera is active only while the scanner is open, and no image or video is stored or transmitted.
 
 ## How it works
 
@@ -90,6 +94,7 @@ OneTapVPN does not replace GlobalProtect, bundle its binaries, or change VPN pro
 
 - The password and TOTP secret are stored in the Keychain and are not written to disk in plain text.
 - The app makes no network connections. Only GlobalProtect contacts the VPN gateway.
+- The camera is used only to decode the QR code while the scanner sheet is open. Frames are not stored or transmitted.
 - Storing the password and TOTP secret together makes two-factor authentication effectively single-factor. Anyone who can read the stored credentials can produce both factors.
 - Accessibility permission lets OneTapVPN inspect and control other apps. Grant it only to a build you trust.
 - Check your employer's IT policy before use. Automating a corporate VPN client may be restricted or forbidden.
@@ -100,6 +105,10 @@ OneTapVPN does not replace GlobalProtect, bundle its binaries, or change VPN pro
 ### Accessibility permission is not granted
 
 Open System Settings > Privacy & Security > Accessibility and enable OneTapVPN. If there are several OneTapVPN entries, remove all of them with the minus button, add `~/Applications/OneTapVPN.app` again, and restart OneTapVPN. Use the installed app, not a copy from the build folder. The local signing identity keeps this permission stable across future rebuilds.
+
+### Camera permission is not granted
+
+Open System Settings > Privacy & Security > Camera and enable OneTapVPN. If the app is not listed, open the QR scanner once to trigger the permission request. Without camera access, paste the TOTP secret or otpauth URI instead.
 
 ### Login fields are not found
 

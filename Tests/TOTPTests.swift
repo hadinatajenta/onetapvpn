@@ -71,6 +71,22 @@ func checkInvalidURI(_ secret: String, _ name: String) {
     }
 }
 
+func checkInvalidProvisioningURI(_ uri: String, _ name: String) {
+    do {
+        _ = try generator.parseProvisioningURI(
+            uri,
+            defaultDigits: 6,
+            defaultPeriod: 30,
+            defaultAlgorithm: "SHA1"
+        )
+        record(false, name)
+    } catch TOTPError.invalidURI {
+        record(true, name)
+    } catch {
+        record(false, name)
+    }
+}
+
 func checkInvalidDigits(_ digits: Int, _ name: String) {
     do {
         _ = try generator.generateCode(
@@ -205,6 +221,36 @@ let uriCode = try? generator.generateCode(
     date: Date(timeIntervalSince1970: 59)
 )
 checkCode(uriCode, "94287082", "otpauth URI overrides digits period and algorithm")
+
+let provisioning = try? generator.parseProvisioningURI(
+    "otpauth://totp/Example:user?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&digits=8&period=60&algorithm=SHA256",
+    defaultDigits: 6,
+    defaultPeriod: 30,
+    defaultAlgorithm: "SHA1"
+)
+record(
+    provisioning?.secret == "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ",
+    "Provisioning URI extracts secret"
+)
+record(provisioning?.digits == 8, "Provisioning URI extracts digits")
+record(provisioning?.period == 60, "Provisioning URI extracts period")
+record(provisioning?.algorithm == "SHA256", "Provisioning URI extracts algorithm")
+
+let defaultProvisioning = try? generator.parseProvisioningURI(
+    "otpauth://totp/Example:user?secret=JBSWY3DPEHPK3PXP",
+    defaultDigits: 7,
+    defaultPeriod: 60,
+    defaultAlgorithm: "SHA512"
+)
+record(defaultProvisioning?.digits == 7, "Provisioning URI applies default digits")
+record(defaultProvisioning?.period == 60, "Provisioning URI applies default period")
+record(defaultProvisioning?.algorithm == "SHA512", "Provisioning URI applies default algorithm")
+
+checkInvalidProvisioningURI("https://example.com/otpauth", "Provisioning parser rejects non-otpauth URI")
+checkInvalidProvisioningURI(
+    "otpauth://hotp/Example:user?secret=JBSWY3DPEHPK3PXP",
+    "Provisioning parser rejects non-TOTP URI"
+)
 
 checkInvalidSecret("JBSWY3DP!", "Invalid raw secret throws invalidSecret")
 checkInvalidURI("otpauth://hotp/BRI:user?secret=JBSWY3DPEHPK3PXP", "Non-TOTP URI throws invalidURI")

@@ -11,6 +11,7 @@ done < <(find Sources -name '*.swift' -print | sort)
 
 swiftc -typecheck -swift-version 5 "${FILES[@]}" \
     -framework AppKit \
+    -framework AVFoundation \
     -framework SwiftUI \
     -framework Combine \
     -framework Security \

@@ -26,6 +26,8 @@
     <string>13.0</string>
     <key>LSUIElement</key>
     <false/>
+    <key>NSCameraUsageDescription</key>
+    <string>OneTapVPN uses the camera to scan your authenticator QR code.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSPrincipalClass</key>
