@@ -1,0 +1,15 @@
+.DS_Store
+.build/
+build/
+*.app
+*.log
+*.xcuserstate
+.env
+.env.*
+*.p12
+*.pem
+*.key
+*.cer
+*.mobileprovision
+*.keychain-db
+*.dSYM/
