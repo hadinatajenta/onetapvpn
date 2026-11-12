@@ -1,7 +1,9 @@
 @preconcurrency import AVFoundation
 import AppKit
 import Combine
+import CoreMedia
 import SwiftUI
+import Vision
 
 enum QRCodeScanError: LocalizedError {
     case emptyPayload
@@ -181,7 +183,7 @@ final class QRCodeScannerController: NSObject, ObservableObject {
 
     let session = AVCaptureSession()
 
-    private let metadataQueue = DispatchQueue(label: "com.erendt.onetapvpn.qr-code-scanner")
+    private let cameraQueue = DispatchQueue(label: "com.erendt.onetapvpn.qr-code-scanner")
     private var isConfigured = false
     private var isActive = false
 
@@ -215,7 +217,7 @@ final class QRCodeScannerController: NSObject, ObservableObject {
 
     func stop() {
         isActive = false
-        metadataQueue.async { [session] in
+        cameraQueue.async { [session] in
             if session.isRunning {
                 session.stopRunning()
             }
@@ -227,7 +229,7 @@ final class QRCodeScannerController: NSObject, ObservableObject {
         guard isActive, isConfigured else {
             return
         }
-        metadataQueue.async { [session] in
+        cameraQueue.async { [session] in
             if !session.isRunning {
                 session.startRunning()
             }
@@ -266,7 +268,11 @@ final class QRCodeScannerController: NSObject, ObservableObject {
 
         do {
             let input = try AVCaptureDeviceInput(device: device)
-            let output = AVCaptureMetadataOutput()
+            let output = AVCaptureVideoDataOutput()
+            output.alwaysDiscardsLateVideoFrames = true
+            output.videoSettings = [
+                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
+            ]
 
             session.beginConfiguration()
             session.sessionPreset = .high
@@ -281,17 +287,11 @@ final class QRCodeScannerController: NSObject, ObservableObject {
             session.addOutput(output)
             session.commitConfiguration()
 
-            guard output.availableMetadataObjectTypes.contains(.qr) else {
-                state = .failed("QR code scanning is not supported on this camera.")
-                return
-            }
-
-            output.setMetadataObjectsDelegate(self, queue: metadataQueue)
-            output.metadataObjectTypes = [.qr]
+            output.setSampleBufferDelegate(self, queue: cameraQueue)
 
             isConfigured = true
             state = .ready
-            metadataQueue.async { [session] in
+            cameraQueue.async { [session] in
                 session.startRunning()
             }
         } catch {
@@ -304,7 +304,7 @@ final class QRCodeScannerController: NSObject, ObservableObject {
             return
         }
         scannedPayload = payload
-        metadataQueue.async { [session] in
+        cameraQueue.async { [session] in
             if session.isRunning {
                 session.stopRunning()
             }
@@ -312,16 +312,32 @@ final class QRCodeScannerController: NSObject, ObservableObject {
     }
 }
 
-extension QRCodeScannerController: AVCaptureMetadataOutputObjectsDelegate {
-    nonisolated func metadataOutput(
-        _ output: AVCaptureMetadataOutput,
-        didOutput metadataObjects: [AVMetadataObject],
+extension QRCodeScannerController: AVCaptureVideoDataOutputSampleBufferDelegate {
+    nonisolated func captureOutput(
+        _ output: AVCaptureOutput,
+        didOutput sampleBuffer: CMSampleBuffer,
         from connection: AVCaptureConnection
     ) {
-        guard let metadataObject = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
-              metadataObject.type == .qr,
-              let payload = metadataObject.stringValue,
-              !payload.isEmpty else {
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+            return
+        }
+
+        let request = VNDetectBarcodesRequest()
+        request.symbologies = [.qr]
+        let handler = VNImageRequestHandler(
+            cvPixelBuffer: pixelBuffer,
+            orientation: .up,
+            options: [:]
+        )
+
+        do {
+            try handler.perform([request])
+        } catch {
+            return
+        }
+
+        guard let observations = request.results,
+              let payload = observations.compactMap(\.payloadStringValue).first(where: { !$0.isEmpty }) else {
             return
         }
 

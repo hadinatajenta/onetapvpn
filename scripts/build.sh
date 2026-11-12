@@ -37,6 +37,8 @@ swiftc -O -swift-version 5 \
     -target "$(uname -m)-apple-macosx13.0" \
     -framework AppKit \
     -framework AVFoundation \
+    -framework CoreMedia \
+    -framework Vision \
     -framework SwiftUI \
     -framework Combine \
     -framework Security \
